@@ -1,4 +1,4 @@
-# OP_Projects
+# OS_Projects
 
 Operating systems projects using multiple languages (C, bash, Python)
 
