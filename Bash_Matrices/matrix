@@ -1,0 +1,306 @@
+#!/bin/bash
+
+#By Jared Tence
+#10/9/2018
+
+#this sets datafilepath1 to a default string
+#this will later be used if no arugments are passed
+datafilepath1="datafile$$"
+if [ "$#" = "1" ]
+then
+	#cats in data from std:in to a new file with the name $datafilepath1
+
+	cat > "$datafilepath1"
+
+	#sets datafilepath2 to error
+
+	datafilepath2="er"
+
+elif [ "$#" = "2" ]
+then
+	#sets datafilepath1 to first matrix
+
+	datafilepath1=$2
+
+	#sets datafilepath2 to error to later be handled
+
+	datafilepath2="er"
+
+elif [ "$#" = "3" ]
+then
+	#sets datafilepath1 to first matrix
+
+	datafilepath1=$2
+
+	#sets datafilepath2 to second matrix
+
+	datafilepath2=$3
+fi
+
+#caculates dimensions of a single matrix
+function dims(){
+
+	#error catching, if more than one matrix is passed in
+	# or if datafilepath1 doesn't point to an actual file it exits 1
+
+	if [ -f "$datafilepath2" ] || [ ! -f "$datafilepath1" ]
+ 	then
+		echo ERROR dimension of matrix can not be found >/dev/stderr
+                exit 1
+	fi
+
+	#pulls first line later to be used to find # of colms
+
+	firstl=$(head -n 1 $datafilepath1)
+
+	#caculates the number of colms by couting the number
+	# of words in the first line
+
+	colms=$(echo "$firstl" | wc -w)
+
+	#caculate the number of rows by counting the number
+	# of lines in the matrix
+
+	rows=$(expr $(cat $datafilepath1 | wc -l))
+
+	echo $rows $colms
+}
+
+#caculates the mean of a single matrix
+function mean(){
+
+	#error catching, if more than one matrix is passed in
+        # or if datafilepath1 doesn't point to an actual file it exits 1
+	if [ -f "$datafilepath2" ] || [ ! -f "$datafilepath1" ]
+        then
+                echo ERROR mean of matrix can not be found >/dev/stderr
+                exit 1
+        fi
+
+	#initalises mean matrix output variable
+
+	meanM=""
+
+	#gets dimensions of matrix
+
+	firstl=$(head -n 1 $datafilepath1)
+        colms=$(echo "$firstl" | wc -w)
+        rows=$(expr $(cat $datafilepath1 | wc -l))
+
+	#for loops through every colm
+
+	for i in `eval echo {1..$colms}`
+        do
+
+		#cuts input matrix to a single colm
+
+		line=$( cut -f $i $datafilepath1 )
+		temp=0
+
+		#loops through each value in colm
+
+		for j in $line
+		do
+			#adds each value in colm together
+
+			temp=$(expr $j + $temp)
+		done
+
+		#rounds a mean of a colm
+
+		if [ $temp -gt 0 ]
+		then
+			temp=$(expr $temp + $(expr $rows / 2))
+		else
+			temp=$(expr $temp - $(expr $rows / 2))
+		fi
+
+
+		temp=$(expr $temp / $rows)
+
+		#adds a mean of a colm to the mean matrix
+
+		meanM="$meanM\t$temp"
+        done
+	echo -e ${meanM:2}
+}
+
+#caculates thr transpose of a single matrix
+function transpose(){
+
+	#error catching, if more than one matrix is passed in
+        # or if datafilepath1 doesn't point to an actual file it exits 1
+	# or if the input file is unreadable
+
+	if [ -f $datafilepath2 ] || [ ! -f $datafilepath1  ] || [ ! -r "$datafilepath1" ]
+        then
+                echo ERROR tranpose of matrix can not be found >/dev/stderr
+                exit 1
+        fi
+
+
+        #gets the # of colms of the input matrix
+
+	firstl=$(head -n 1 $datafilepath1)
+	colms=$(echo "$firstl" | wc -w)
+
+	#for loops through every colm
+
+	for i in `eval echo {1..$colms}`
+        do
+		#cuts out each colm for input matrix
+
+		line=$( cut -f $i $datafilepath1 )
+
+		#converts colm to row and outputs it
+
+		echo $line | tr ' ' $'\t'
+
+        done
+}
+
+#adds two matrices together
+# fun fact about this function is that without error checking
+#  it can add any matrix together as long as the first matrix
+#  is bigger than the second
+function add(){
+
+	#error catching, if input matrices don't exist exit 1
+
+	if [ ! -f "$datafilepath2" ] || [ ! -f "$datafilepath1" ]
+        then
+                echo ERROR can not add no existant matrix >/dev/stderr
+                exit 1
+        fi
+
+	#gets rows and colms of both input matrixs
+
+	firstl1=$(head -n 1 $datafilepath1)
+        colms1=$(echo "$firstl1" | wc -w)
+        rows1=$(expr $(cat $datafilepath1 | wc -l))
+
+	firstl2=$(head -n 1 $datafilepath2)
+        colms2=$(echo "$firstl2" | wc -w)
+        rows2=$(expr $(cat $datafilepath2 | wc -l))
+
+	#checks if they can be added together
+	if [ $colms1 -ne $colms2 ] || [ $rows1 -ne $rows2  ]
+        then
+                echo ERROR matrix can not be added >/dev/stderr
+                exit 1
+        fi
+
+	#for loops through each row
+
+	for i in `eval echo {1..$rows1}`
+        do
+
+		#pulls first row from matrices
+
+                line1=$(head -n $i $datafilepath1 | tail -n 1 | tr $'\t' $'\n')
+		line2=$(head -n $i $datafilepath2 | tail -n 1 | tr $'\t' $'\n')
+
+		#loops through row by going through each colm
+
+		for j in `eval echo {1..$colms1}`
+		do
+
+			#pulls each value from each matrix
+
+			a=$(echo " $line1 " | head -n $j | tail -n 1)
+			b=$(echo " $line2 " | head -n $j | tail -n 1)
+
+			#adds result to the output string
+
+			output=$output$(expr $a + $b)'\t'
+		done
+
+		#after row is outputed it removes ending tab and replaces it
+		# with a new line
+
+		output=${output%??}
+		output=$output'\n'
+	done
+
+	#outputs result
+
+	echo -e ${output%??}
+}
+
+#multiplies two matrices together
+function multiply(){
+
+	#gets rows and colms of each matrice
+
+        firstl1=$(head -n 1 $datafilepath1)
+        colms1=$(echo "$firstl1" | wc -w)
+        rows1=$(expr $(cat $datafilepath1 | wc -l))
+
+        firstl2=$(head -n 1 $datafilepath2)
+        colms2=$(echo "$firstl2" | wc -w)
+        rows2=$(expr $(cat $datafilepath2 | wc -l))
+
+	#error checks to see if matrices can be multiplied together
+
+	if [ $colms1 -ne $rows2  ]
+	then
+		echo ERROR matrix can not be muliplied >/dev/stderr
+		exit 1
+	fi
+
+
+	#for loops through each row in the first matice
+
+	for i in `eval echo {1..$rows1}`
+        do
+
+		#pulls a single row from the first matice
+
+                line1=$(head -n $i $datafilepath1 | tail -n 1 | tr $'\t' $'\n')
+
+		#for loops through every colm in the second matrice
+
+		for j in `eval echo {1..$colms2}`
+		do
+
+			#pulls a single colm form the second matrice
+
+			line2=$(cut -f $j $datafilepath2)
+			dot=0
+
+			#loops through every value in the first matices
+			# row and the second matrices colm
+
+                	for k in `eval echo {1..$colms1}`
+                	do
+
+				#pulls values from colm and row
+
+                        	a=$(echo " $line1 " | head -n $k | tail -n 1)
+                        	b=$(echo " $line2 " | head -n $k | tail -n 1)
+
+				#caculates the value to be put into the matrix
+
+				dot=$(expr $a \* $b + $dot)
+                	done
+
+			#puts multiplied value into the output matrix
+
+                	output=$output$dot'\t'
+		done
+
+		#shaves off last tab and adds a new line
+
+		output=${output%??}
+		output=$output'\n'
+        done
+
+	#echos ouput matrix
+
+        echo -e ${output%??}
+
+}
+
+#actually calls function when script is ran and passes in both parameters
+
+$1 "${@:2}" "${@:3}"

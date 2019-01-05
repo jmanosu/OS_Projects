@@ -1,0 +1,22 @@
+#!/bin/bash
+# This is a simple demo script
+# It takes 3 parameters and checks if they are files or directories
+
+echo "Welcome to my script"
+
+if [[ -f "$1" || -d "$1" ]]
+then
+    echo "The First argument is a file or directory"
+fi
+
+if [[ -f "$2" || -d "$2" ]]
+then
+    echo "The second argument is a file or directory"
+fi
+
+if [[ -f "$3" || -d "$3" ]]
+then
+    echo "The third argument is a file or directory"
+fi
+
+echo "Bye!"
