@@ -31,6 +31,6 @@ Maze - Small text based maze runner using multiple threads
 
 * Learned A LOT about C and how Linux systems operate
 
-## TODO
+## To Do's
 
-* Add more indepth documentation for each project (i.e more README.ms)
+* Add more indepth documentation for each project (i.e more README.md)
